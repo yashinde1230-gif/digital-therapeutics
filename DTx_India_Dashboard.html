@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Digital Therapeutics India · Trust & Adoption Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --navy:   #0D2137;
+    --teal:   #0A7B6C;
+    --teal2:  #12A090;
+    --amber:  #E8A020;
+    --red:    #C0392B;
+    --slate:  #1E3A4C;
+    --ghost:  #EEF3F7;
+    --mist:   #F7FAFB;
+    --ink:    #0D1B2A;
+    --mid:    #5A7184;
+    --line:   rgba(255,255,255,0.08);
+    --card-bg:#132535;
+    --card2:  #0E1F30;
+    --glow:   rgba(10,123,108,0.18);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background: var(--navy);
+    color:#e8eef4;
+    font-family:'DM Sans',sans-serif;
+    font-size:15px;
+    line-height:1.6;
+    min-height:100vh;
+  }
+
+  /* ── BACKGROUND TEXTURE ── */
+  body::before{
+    content:'';
+    position:fixed;inset:0;
+    background:
+      radial-gradient(ellipse 80% 60% at 10% 5%, rgba(10,123,108,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 90% 90%, rgba(232,160,32,0.07) 0%, transparent 55%),
+      radial-gradient(ellipse 40% 40% at 50% 50%, rgba(18,160,144,0.04) 0%, transparent 60%);
+    pointer-events:none;z-index:0;
+  }
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:40px 24px 80px}
+
+  /* ── HEADER ── */
+  header{
+    text-align:center;
+    padding:60px 20px 48px;
+    position:relative;
+  }
+  .badge{
+    display:inline-flex;align-items:center;gap:8px;
+    background:rgba(10,123,108,0.18);
+    border:1px solid rgba(10,123,108,0.4);
+    border-radius:100px;
+    padding:6px 18px;
+    font-size:12px;font-weight:600;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--teal2);
+    margin-bottom:24px;
+  }
+  .badge::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--teal2);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+  h1{
+    font-family:'Playfair Display',serif;
+    font-size:clamp(2rem,5vw,3.4rem);
+    font-weight:900;
+    line-height:1.12;
+    color:#fff;
+    letter-spacing:-.02em;
+    margin-bottom:16px;
+  }
+  h1 span{color:var(--teal2)}
+  .subtitle{
+    max-width:640px;margin:0 auto 12px;
+    color:#8baab8;font-size:15px;line-height:1.7;
+  }
+  .meta{
+    display:flex;justify-content:center;gap:24px;
+    font-size:12px;color:var(--mid);flex-wrap:wrap;margin-top:20px;
+  }
+  .meta span{display:flex;align-items:center;gap:5px}
+  .meta span::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--teal)}
+
+  /* ── SECTION LABEL ── */
+  .section-label{
+    font-size:11px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;
+    color:var(--teal2);margin-bottom:8px;
+  }
+
+  /* ── KPI STRIP ── */
+  .kpi-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:16px;margin-bottom:28px;
+  }
+  .kpi{
+    background:var(--card-bg);
+    border:1px solid rgba(255,255,255,0.06);
+    border-radius:16px;
+    padding:24px 20px;
+    position:relative;overflow:hidden;
+    transition:transform .25s,box-shadow .25s;
+  }
+  .kpi:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,0.35)}
+  .kpi::after{
+    content:'';position:absolute;top:0;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,var(--teal),var(--teal2));
+  }
+  .kpi-label{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--mid);margin-bottom:10px}
+  .kpi-value{
+    font-family:'Playfair Display',serif;
+    font-size:2.4rem;font-weight:900;color:#fff;line-height:1;margin-bottom:6px;
+  }
+  .kpi-value span{font-size:1.1rem;color:var(--teal2)}
+  .kpi-delta{
+    font-size:12px;font-weight:600;
+    display:inline-flex;align-items:center;gap:4px;
+    padding:3px 8px;border-radius:100px;
+  }
+  .delta-up{background:rgba(10,123,108,0.2);color:#2ecc99}
+  .delta-down{background:rgba(192,57,43,0.2);color:#e74c3c}
+  .kpi-note{font-size:10px;color:#4a6070;margin-top:6px}
+
+  /* ── CARD ── */
+  .card{
+    background:var(--card-bg);
+    border:1px solid rgba(255,255,255,0.06);
+    border-radius:20px;padding:28px;
+    position:relative;overflow:hidden;
+  }
+  .card-title{
+    font-family:'Playfair Display',serif;
+    font-size:1.15rem;font-weight:700;color:#dce8f0;
+    margin-bottom:4px;
+  }
+  .card-sub{font-size:12px;color:var(--mid);margin-bottom:22px}
+
+  /* ── GRID LAYOUTS ── */
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:20px}
+  .full{grid-column:1/-1}
+  @media(max-width:768px){.grid-2,.grid-3{grid-template-columns:1fr}}
+
+  /* ── CHART CONTAINERS ── */
+  .chart-box{position:relative;height:260px}
+  .chart-box-tall{position:relative;height:320px}
+
+  /* ── COMPARISON TABLE ── */
+  .comp-table{width:100%;border-collapse:collapse;font-size:13.5px}
+  .comp-table th{
+    font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--mid);padding:10px 14px;text-align:left;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+  }
+  .comp-table td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,0.04)}
+  .comp-table tr:last-child td{border-bottom:none}
+  .comp-table tr:hover td{background:rgba(255,255,255,0.03)}
+  .metric-name{color:#c8dce8;font-weight:500}
+  .dtx-val{color:#2ecc99;font-weight:600;font-family:'DM Mono',monospace}
+  .ndtx-val{color:#8baab8;font-family:'DM Mono',monospace}
+  .delta-cell{
+    font-family:'DM Mono',monospace;font-weight:600;font-size:12px;
+    padding:3px 8px;border-radius:6px;display:inline-block;
+  }
+  .pos{background:rgba(46,204,153,0.15);color:#2ecc99}
+  .neg{background:rgba(46,204,153,0.15);color:#2ecc99}
+  .tag{font-size:10px;color:#3a5060;font-style:italic}
+
+  /* ── BARRIER BARS ── */
+  .barrier{margin-bottom:18px}
+  .barrier-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .barrier-label{font-size:13px;color:#c0d4e0;font-weight:500}
+  .barrier-pct{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:#fff}
+  .bar-track{height:8px;background:rgba(255,255,255,0.07);border-radius:100px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:100px;transition:width 1.4s cubic-bezier(.22,1,.36,1)}
+  .priority{font-size:10px;padding:2px 8px;border-radius:100px;font-weight:600}
+  .crit{background:rgba(192,57,43,0.2);color:#e74c3c}
+  .high{background:rgba(232,160,32,0.2);color:var(--amber)}
+  .med{background:rgba(90,113,132,0.25);color:#8baab8}
+
+  /* ── HEATMAP ── */
+  .heatmap-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+  .hm-header{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px}
+  .hm-col-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mid);text-align:center;padding:4px}
+  .hm-row{display:contents}
+  .hm-cell{
+    border-radius:8px;padding:14px 6px;text-align:center;
+    font-family:'DM Mono',monospace;font-size:13px;font-weight:500;
+    transition:transform .2s;cursor:default;
+  }
+  .hm-cell:hover{transform:scale(1.08);z-index:10;position:relative}
+  .hm-row-wrap{display:grid;grid-template-columns:140px repeat(5,1fr);gap:6px;align-items:center;margin-bottom:6px}
+  .hm-row-label{font-size:12px;color:#8baab8;font-weight:500;padding-right:8px}
+
+  /* ── FRAMEWORK ── */
+  .funnel{display:flex;flex-direction:column;gap:6px;align-items:center}
+  .funnel-step{
+    border-radius:12px;padding:14px 24px;text-align:center;
+    transition:transform .2s,box-shadow .2s;cursor:default;
+  }
+  .funnel-step:hover{transform:scale(1.02);box-shadow:0 8px 30px rgba(0,0,0,0.3)}
+  .funnel-title{font-weight:600;font-size:13.5px;margin-bottom:3px}
+  .funnel-desc{font-size:11px;opacity:.75}
+  .arrow-down{text-align:center;color:rgba(255,255,255,0.25);font-size:18px;margin:0}
+
+  /* ── FOOTER ── */
+  footer{
+    text-align:center;padding-top:48px;
+    border-top:1px solid rgba(255,255,255,0.06);
+    margin-top:24px;
+  }
+  footer p{font-size:12px;color:#3a5570;line-height:1.8}
+  footer strong{color:#5a8090}
+
+  /* ── ANIMATE ON LOAD ── */
+  .fade-up{opacity:0;transform:translateY(24px);animation:fadeUp .6s forwards}
+  @keyframes fadeUp{to{opacity:1;transform:none}}
+  .d1{animation-delay:.05s}.d2{animation-delay:.15s}.d3{animation-delay:.25s}
+  .d4{animation-delay:.35s}.d5{animation-delay:.45s}.d6{animation-delay:.55s}
+  .d7{animation-delay:.65s}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header class="fade-up">
+    <div class="badge">MBA Research · IIHMR University · Pharma Management</div>
+    <h1>Digital Therapeutics in India<br><span>Bridging the Trust Deficit</span></h1>
+    <p class="subtitle">A data-driven analysis of why DTx adoption lags in India and how clinical evidence can unlock a USD 10.6 billion opportunity for patients, physicians, and pharma.</p>
+    <div class="meta">
+      <span>77M+ Diabetics in India</span>
+      <span>12–15% HCP Adoption Rate</span>
+      <span>USD 10.6B Market by 2030</span>
+      <span>Data: WHO · ICMR · NITI Aayog · PubMed</span>
+    </div>
+  </header>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-grid fade-up d1">
+    <div class="kpi">
+      <div class="kpi-label">DTx Treatment Adherence</div>
+      <div class="kpi-value">78<span>%</span></div>
+      <span class="kpi-delta delta-up">▲ +26 pts vs non-DTx</span>
+      <div class="kpi-note">[Modeled] Chronic disease cohort</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Cost Savings / Patient / Year</div>
+      <div class="kpi-value">₹6.7<span>K</span></div>
+      <span class="kpi-delta delta-up">▲ 27% reduction</span>
+      <div class="kpi-note">[Modeled] vs standard care INR 25,200</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">HbA1c Reduction (Diabetes)</div>
+      <div class="kpi-value">1.4<span>%pts</span></div>
+      <span class="kpi-delta delta-up">▲ 2.3× vs non-DTx</span>
+      <div class="kpi-note">[Referenced] Lancet, 2020</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Physicians Citing Evidence Gap</div>
+      <div class="kpi-value">82<span>%</span></div>
+      <span class="kpi-delta delta-down">▼ #1 adoption barrier</span>
+      <div class="kpi-note">[Modeled] Survey n=450</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Hospital Re-admissions (DTx)</div>
+      <div class="kpi-value">8<span>%</span></div>
+      <span class="kpi-delta delta-up">▲ 58% lower rate</span>
+      <div class="kpi-note">[Modeled] vs 19% non-DTx</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">India DTx Market 2030</div>
+      <div class="kpi-value">$10.6<span>B</span></div>
+      <span class="kpi-delta delta-up">▲ 21.6% CAGR</span>
+      <div class="kpi-note">[Referenced] NITI Aayog, 2022</div>
+    </div>
+  </div>
+
+  <!-- ROW 1: Bar Chart + Barrier Chart -->
+  <div class="grid-2 fade-up d2">
+
+    <!-- Bar chart -->
+    <div class="card">
+      <div class="section-label">Core Finding</div>
+      <div class="card-title">DTx vs Non-DTx Clinical Outcomes</div>
+      <div class="card-sub">India-relevant chronic disease context · [M] = Modeled · [R] = Referenced</div>
+      <div class="chart-box">
+        <canvas id="barChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Physician barriers -->
+    <div class="card">
+      <div class="section-label">Adoption Barriers</div>
+      <div class="card-title">Why Physicians Don't Recommend DTx</div>
+      <div class="card-sub">Modeled survey, n=450 Indian physicians [M]</div>
+      <div id="barriers"></div>
+    </div>
+  </div>
+
+  <!-- ROW 2: Line Chart (full) -->
+  <div class="card fade-up d3" style="margin-bottom:20px">
+    <div class="section-label">Longitudinal Trend</div>
+    <div class="card-title">HCP Adoption Rate & Outcome Score Over Time</div>
+    <div class="card-sub">Modeled trajectory 2018–2025 · Inflection driven by COVID-19 digital surge & clinical trial accumulation [M]</div>
+    <div class="chart-box-tall">
+      <canvas id="lineChart"></canvas>
+    </div>
+  </div>
+
+  <!-- ROW 3: Comparison Table + Heatmap -->
+  <div class="grid-2 fade-up d4">
+
+    <!-- Detailed comparison table -->
+    <div class="card">
+      <div class="section-label">Comparative Analysis</div>
+      <div class="card-title">DTx vs Non-DTx: Full Metric Breakdown</div>
+      <div class="card-sub">India chronic disease patients · Data tags shown</div>
+      <table class="comp-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>DTx Users</th>
+            <th>Non-DTx</th>
+            <th>Delta</th>
+          </tr>
+        </thead>
+        <tbody id="compTable"></tbody>
+      </table>
+    </div>
+
+    <!-- Therapeutic area heatmap -->
+    <div class="card">
+      <div class="section-label">Evidence Landscape</div>
+      <div class="card-title">Evidence & Trust by Therapeutic Area</div>
+      <div class="card-sub">Scores 0–100 across 5 dimensions [M]</div>
+      <div id="heatmap"></div>
+    </div>
+  </div>
+
+  <!-- ROW 4: Doughnut + Framework -->
+  <div class="grid-2 fade-up d5">
+
+    <!-- Doughnut -->
+    <div class="card">
+      <div class="section-label">Market Snapshot</div>
+      <div class="card-title">DTx Evidence Strength by Therapeutic Area</div>
+      <div class="card-sub">Relative clinical evidence maturity [M]</div>
+      <div class="chart-box" style="height:240px">
+        <canvas id="donutChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Trust funnel framework -->
+    <div class="card">
+      <div class="section-label">Original Framework</div>
+      <div class="card-title">The DTx Trust-Adoption Funnel</div>
+      <div class="card-sub">Clinical Evidence → Scaled Adoption → Better Outcomes</div>
+      <div class="funnel" id="funnel"></div>
+    </div>
+  </div>
+
+  <!-- ROW 5: Radar Chart -->
+  <div class="card fade-up d6" style="margin-bottom:20px">
+    <div class="section-label">Multi-Dimensional View</div>
+    <div class="card-title">DTx vs Non-DTx: Spider Comparison Across All Dimensions</div>
+    <div class="card-sub">Normalised scores (0–100) across key performance indicators [M]</div>
+    <div style="max-width:480px;margin:0 auto">
+      <div class="chart-box-tall">
+        <canvas id="radarChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="fade-up d7">
+    <p><strong>Research by:</strong> MBA Student · Pharmaceutical Management · IIHMR University, Jaipur</p>
+    <p><strong>Sources:</strong> WHO · ICMR · NITI Aayog · CDSCO · PubMed · IDF Atlas · ClinicalTrials.gov · Lancet · NASSCOM</p>
+    <p style="margin-top:8px">Data tags: <strong>[R]</strong> = Referenced from credible sources &nbsp;|&nbsp; <strong>[M]</strong> = Logically modeled estimates calibrated against published benchmarks</p>
+    <p style="margin-top:8px;color:#2a4050">© 2025 MBA Research Project · Digital Therapeutics India · Academic Use</p>
+  </footer>
+
+</div><!-- /wrap -->
+
+<script>
+// ═══════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════
+const TEAL   = '#0A7B6C';
+const TEAL2  = '#12A090';
+const AMBER  = '#E8A020';
+const BLUE   = '#2980b9';
+const GRAY   = '#5A7184';
+const GREEN  = '#2ecc99';
+
+// Comparison table data
+const compData = [
+  { metric:"Treatment Adherence", dtx:"78%", ndtx:"52%", delta:"+26 pts", tag:"[M]", pos:true },
+  { metric:"Recovery Time Reduction", dtx:"32%", ndtx:"14%", delta:"+18%", tag:"[M]", pos:true },
+  { metric:"Cost Savings vs Standard", dtx:"28%", ndtx:"8%", delta:"+20%", tag:"[M]", pos:true },
+  { metric:"Patient Outcome Score /100", dtx:"65", ndtx:"38", delta:"+71%", tag:"[M/R]", pos:true },
+  { metric:"HbA1c Reduction (% pts)", dtx:"1.4", ndtx:"0.6", delta:"2.3×", tag:"[R] Lancet", pos:true },
+  { metric:"Hospital Re-admission %", dtx:"8%", ndtx:"19%", delta:"−58%", tag:"[M]", pos:true },
+  { metric:"Cost / Patient / Year ₹", dtx:"18,500", ndtx:"25,200", delta:"−₹6,700", tag:"[M]", pos:true },
+  { metric:"Physician Consultations/yr", dtx:"4.2×", ndtx:"6.1×", delta:"−31%", tag:"[M]", pos:true },
+];
+
+// Barrier data
+const barriers = [
+  { label:"Lack of India-specific clinical evidence", pct:82, priority:"Critical", cls:"crit" },
+  { label:"Regulatory ambiguity (CDSCO gaps)", pct:71, priority:"High", cls:"high" },
+  { label:"Low patient digital literacy", pct:65, priority:"High", cls:"high" },
+  { label:"Reimbursement / insurance exclusion", pct:59, priority:"Medium-High", cls:"high" },
+  { label:"Workflow integration challenges", pct:53, priority:"Medium", cls:"med" },
+  { label:"Data privacy concerns", pct:47, priority:"Medium", cls:"med" },
+];
+
+// Heatmap data
+const hmRows = ["Diabetes Mgmt","Mental Health","Cardiovascular","COPD/Respiratory","Oncology Support"];
+const hmCols = ["Evidence\nStrength","India Trial\nAvail.","HCP Trust\nScore","Patient\nAccept.","Regulatory\nReady"];
+const hmData = [
+  [88,35,72,80,55],[75,22,58,85,42],[70,28,65,70,50],[60,18,50,60,38],[55,12,45,55,30]
+];
+
+// Funnel steps
+const funnelSteps = [
+  { title:"1 · Clinical Evidence Generation", desc:"India RCTs, ICMR collaborations, Real-World Evidence", bg:"rgba(10,123,108,0.55)", w:"100%" },
+  { title:"2 · Regulatory Validation (CDSCO)", desc:"SaMD pathway, ABDM alignment, NDHM integration", bg:"rgba(10,100,90,0.5)", w:"88%" },
+  { title:"3 · HCP Education & KOL Endorsement", desc:"CME, IMA/API chapters, Indian medical journals", bg:"rgba(10,80,75,0.45)", w:"76%" },
+  { title:"4 · Patient Trust & Engagement", desc:"Vernacular UI, DPDP compliance, transparent outcomes", bg:"rgba(41,128,185,0.35)", w:"62%" },
+  { title:"5 · Scaled Adoption → Better Outcomes", desc:"ABDM integration · real-world evidence loop", bg:"rgba(41,100,150,0.3)", w:"50%" },
+];
+
+// ═══════════════════════════════════════
+// RENDER BARRIERS
+// ═══════════════════════════════════════
+const barrierEl = document.getElementById('barriers');
+barriers.forEach(b=>{
+  const div = document.createElement('div');
+  div.className='barrier';
+  div.innerHTML=`
+    <div class="barrier-head">
+      <span class="barrier-label">${b.label}</span>
+      <span class="priority ${b.cls}">${b.priority}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="bar-track" style="flex:1">
+        <div class="bar-fill" style="width:0%;background:linear-gradient(90deg,${b.cls==='crit'?'#e74c3c,#c0392b':b.cls==='high'?'#E8A020,#d68910':'#5A7184,#4a6070'})"
+             data-target="${b.pct}"></div>
+      </div>
+      <span class="barrier-pct">${b.pct}%</span>
+    </div>`;
+  barrierEl.appendChild(div);
+});
+
+// ═══════════════════════════════════════
+// RENDER COMPARISON TABLE
+// ═══════════════════════════════════════
+const tbody = document.getElementById('compTable');
+compData.forEach(r=>{
+  tbody.innerHTML+=`<tr>
+    <td><span class="metric-name">${r.metric}</span> <span class="tag">${r.tag}</span></td>
+    <td><span class="dtx-val">${r.dtx}</span></td>
+    <td><span class="ndtx-val">${r.ndtx}</span></td>
+    <td><span class="delta-cell ${r.pos?'pos':'neg'}">${r.delta}</span></td>
+  </tr>`;
+});
+
+// ═══════════════════════════════════════
+// RENDER HEATMAP
+// ═══════════════════════════════════════
+function hmColor(v){
+  if(v>=80)return{bg:'rgba(10,123,108,0.55)',c:'#a8f0e0'};
+  if(v>=60)return{bg:'rgba(10,123,108,0.32)',c:'#6dd6c0'};
+  if(v>=40)return{bg:'rgba(232,160,32,0.28)',c:'#f0c060'};
+  return{bg:'rgba(192,57,43,0.25)',c:'#f09080'};
+}
+
+const hm = document.getElementById('heatmap');
+// column headers
+const headerRow = document.createElement('div');
+headerRow.style.cssText='display:grid;grid-template-columns:120px repeat(5,1fr);gap:5px;margin-bottom:6px';
+headerRow.innerHTML='<div></div>'+hmCols.map(c=>`<div style="font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mid);text-align:center;line-height:1.3">${c.replace('\n','<br>')}</div>`).join('');
+hm.appendChild(headerRow);
+
+hmRows.forEach((row,ri)=>{
+  const rowDiv=document.createElement('div');
+  rowDiv.style.cssText='display:grid;grid-template-columns:120px repeat(5,1fr);gap:5px;margin-bottom:5px;align-items:center';
+  rowDiv.innerHTML=`<div style="font-size:11px;color:#8baab8;font-weight:500;padding-right:6px;line-height:1.3">${row}</div>`+
+    hmData[ri].map(v=>{
+      const {bg,c}=hmColor(v);
+      return`<div style="background:${bg};border-radius:8px;padding:11px 4px;text-align:center;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:${c};transition:transform .2s;cursor:default" onmouseenter="this.style.transform='scale(1.09)'" onmouseleave="this.style.transform='none'">${v}</div>`;
+    }).join('');
+  hm.appendChild(rowDiv);
+});
+
+// Legend
+hm.innerHTML+=`<div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap">
+  ${[['rgba(10,123,108,0.55)','#a8f0e0','80–100 Strong'],['rgba(10,123,108,0.32)','#6dd6c0','60–79 Good'],['rgba(232,160,32,0.28)','#f0c060','40–59 Moderate'],['rgba(192,57,43,0.25)','#f09080','<40 Weak']].map(([bg,c,label])=>`<div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;border-radius:3px;background:${bg}"></div><span style="font-size:10px;color:${c}">${label}</span></div>`).join('')}
+</div>`;
+
+// ═══════════════════════════════════════
+// RENDER FUNNEL
+// ═══════════════════════════════════════
+const funnelEl = document.getElementById('funnel');
+funnelSteps.forEach((s,i)=>{
+  const step=document.createElement('div');
+  step.className='funnel-step';
+  step.style.cssText=`background:${s.bg};border:1px solid rgba(255,255,255,0.1);width:${s.w};backdrop-filter:blur(4px)`;
+  step.innerHTML=`<div class="funnel-title">${s.title}</div><div class="funnel-desc">${s.desc}</div>`;
+  funnelEl.appendChild(step);
+  if(i<funnelSteps.length-1){
+    const arr=document.createElement('div');
+    arr.className='arrow-down';arr.textContent='↓';
+    funnelEl.appendChild(arr);
+  }
+});
+
+// ═══════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════
+Chart.defaults.color='#6a8a9a';
+Chart.defaults.font.family="'DM Sans', sans-serif";
+
+// BAR CHART
+const barCtx=document.getElementById('barChart').getContext('2d');
+new Chart(barCtx,{
+  type:'bar',
+  data:{
+    labels:['Treatment\nAdherence %','Recovery\nReduction %','Cost\nSavings %','Outcome\nScore /100','Hosp Re-\nadmission %'],
+    datasets:[
+      {label:'DTx Users',data:[78,32,28,65,8],backgroundColor:'rgba(10,123,108,0.75)',borderColor:'rgba(18,160,144,0.9)',borderWidth:2,borderRadius:6},
+      {label:'Non-DTx Users',data:[52,14,8,38,19],backgroundColor:'rgba(90,113,132,0.45)',borderColor:'rgba(90,113,132,0.7)',borderWidth:2,borderRadius:6},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{
+      legend:{position:'top',labels:{color:'#8baab8',boxWidth:12,font:{size:11}}},
+      tooltip:{
+        backgroundColor:'#0D2137',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,
+        titleColor:'#fff',bodyColor:'#8baab8',
+        callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw}${ctx.dataIndex===4?'%':ctx.dataIndex===3?'/100':'%'}`}
+      }
+    },
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5a7a8a',font:{size:10}}},
+      y:{grid:{color:'rgba(255,255,255,0.06)'},ticks:{color:'#5a7a8a',font:{size:10}},min:0,max:95}
+    }
+  }
+});
+
+// LINE CHART
+const lineCtx=document.getElementById('lineChart').getContext('2d');
+const years=[2018,2019,2020,2021,2022,2023,2024,2025];
+const adoptionGrad=lineCtx.createLinearGradient(0,0,0,300);
+adoptionGrad.addColorStop(0,'rgba(10,123,108,0.25)');
+adoptionGrad.addColorStop(1,'rgba(10,123,108,0)');
+new Chart(lineCtx,{
+  type:'line',
+  data:{
+    labels:years,
+    datasets:[
+      {
+        label:'HCP Adoption Rate (%)',data:[3,5,8,12,19,28,38,47],
+        borderColor:'rgba(18,160,144,1)',backgroundColor:adoptionGrad,
+        borderWidth:2.5,pointBackgroundColor:'rgba(18,160,144,1)',pointRadius:4,
+        tension:.4,fill:true,yAxisID:'y'
+      },
+      {
+        label:'Composite Outcome Index (0–100)',data:[42,44,49,55,61,68,74,79],
+        borderColor:'rgba(232,160,32,0.9)',backgroundColor:'transparent',
+        borderWidth:2,pointBackgroundColor:'rgba(232,160,32,0.9)',pointRadius:4,
+        tension:.4,fill:false,yAxisID:'y2',borderDash:[6,3]
+      },
+      {
+        label:'India DTx Clinical Trials',data:[2,4,7,12,20,31,45,60],
+        borderColor:'rgba(46,204,153,0.55)',backgroundColor:'transparent',
+        borderWidth:1.5,pointBackgroundColor:'rgba(46,204,153,0.55)',pointRadius:3,
+        tension:.4,fill:false,yAxisID:'y2',borderDash:[2,4]
+      },
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{
+      legend:{position:'top',labels:{color:'#8baab8',boxWidth:12,font:{size:11}}},
+      tooltip:{
+        backgroundColor:'#0D2137',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,
+        titleColor:'#fff',bodyColor:'#8baab8',
+      },
+      annotation:{
+        annotations:{
+          covid:{type:'line',xMin:2020,xMax:2020,borderColor:'rgba(255,255,255,0.15)',borderWidth:1,borderDash:[4,4],
+            label:{content:'COVID-19 Inflection',enabled:true,color:'#5a7a8a',font:{size:10}}}
+        }
+      }
+    },
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5a7a8a',font:{size:11}}},
+      y:{position:'left',title:{display:true,text:'HCP Adoption %',color:'rgba(18,160,144,0.7)',font:{size:10}},
+         grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#5a7a8a',font:{size:10}},min:0,max:65},
+      y2:{position:'right',title:{display:true,text:'Index / Trial Count',color:'rgba(232,160,32,0.7)',font:{size:10}},
+          grid:{display:false},ticks:{color:'#5a7a8a',font:{size:10}},min:0,max:90}
+    }
+  }
+});
+
+// DOUGHNUT CHART
+const donutCtx=document.getElementById('donutChart').getContext('2d');
+new Chart(donutCtx,{
+  type:'doughnut',
+  data:{
+    labels:['Diabetes Mgmt','Mental Health','Cardiovascular','COPD/Respiratory','Oncology Support'],
+    datasets:[{
+      data:[88,75,70,60,55],
+      backgroundColor:['rgba(10,123,108,0.85)','rgba(18,160,144,0.7)','rgba(41,128,185,0.7)','rgba(232,160,32,0.7)','rgba(90,113,132,0.6)'],
+      borderColor:['rgba(10,123,108,1)','rgba(18,160,144,1)','rgba(41,128,185,1)','rgba(232,160,32,1)','rgba(90,113,132,1)'],
+      borderWidth:2,hoverOffset:8
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,cutout:'65%',
+    plugins:{
+      legend:{position:'right',labels:{color:'#8baab8',font:{size:11},boxWidth:12,padding:12}},
+      tooltip:{backgroundColor:'#0D2137',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,
+        titleColor:'#fff',bodyColor:'#8baab8',
+        callbacks:{label:ctx=>`Evidence Score: ${ctx.raw}/100`}
+      }
+    }
+  }
+});
+
+// RADAR CHART
+const radarCtx=document.getElementById('radarChart').getContext('2d');
+new Chart(radarCtx,{
+  type:'radar',
+  data:{
+    labels:['Treatment\nAdherence','Recovery\nSpeed','Cost\nEfficiency','Patient\nOutcomes','HCP\nTrust','Evidence\nStrength'],
+    datasets:[
+      {label:'DTx Users',data:[78,72,68,65,70,80],
+       borderColor:'rgba(18,160,144,0.9)',backgroundColor:'rgba(10,123,108,0.2)',
+       borderWidth:2,pointBackgroundColor:'rgba(18,160,144,1)',pointRadius:4},
+      {label:'Non-DTx Users',data:[52,48,32,38,55,35],
+       borderColor:'rgba(90,113,132,0.6)',backgroundColor:'rgba(90,113,132,0.1)',
+       borderWidth:2,pointBackgroundColor:'rgba(90,113,132,0.8)',pointRadius:4},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{
+      legend:{position:'top',labels:{color:'#8baab8',boxWidth:12,font:{size:11}}},
+      tooltip:{backgroundColor:'#0D2137',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,
+        titleColor:'#fff',bodyColor:'#8baab8'}
+    },
+    scales:{
+      r:{
+        grid:{color:'rgba(255,255,255,0.07)'},
+        angleLines:{color:'rgba(255,255,255,0.07)'},
+        pointLabels:{color:'#8baab8',font:{size:10.5}},
+        ticks:{color:'#3a5060',backdropColor:'transparent',stepSize:20},
+        min:0,max:100
+      }
+    }
+  }
+});
+
+// ═══════════════════════════════════════
+// ANIMATE BARS ON LOAD
+// ═══════════════════════════════════════
+window.addEventListener('load',()=>{
+  setTimeout(()=>{
+    document.querySelectorAll('.bar-fill').forEach(el=>{
+      el.style.width=el.dataset.target+'%';
+    });
+  },400);
+});
+</script>
+</body>
+</html>
